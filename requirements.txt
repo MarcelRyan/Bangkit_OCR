@@ -1,0 +1,5 @@
+paddlepaddle-gpu
+paddleocr
+paddlepaddle
+opencv-python
+matplotlib
