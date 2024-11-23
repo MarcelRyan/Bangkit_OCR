@@ -5,6 +5,8 @@ numpy
 paddlepaddle-gpu
 paddlepaddle
 paddleocr
+python-multipart
+google-cloud-aiplatform
 opencv-python
 matplotlib
 pydantic==2.9.2
