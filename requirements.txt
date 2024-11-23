@@ -7,3 +7,5 @@ paddlepaddle
 paddleocr
 opencv-python
 matplotlib
+pydantic==2.9.2
+pydantic-settings==2.6.1

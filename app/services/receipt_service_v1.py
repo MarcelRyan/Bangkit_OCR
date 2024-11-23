@@ -5,6 +5,9 @@ from datetime import datetime
 from fastapi import UploadFile
 from app.common.logging import logger
 from app.utils.image_utils import preprocess_image
+from app.utils.llm_utils import fix_typos_and_parse
+from app.utils.timestamp_utils import is_valid_timestamp
+
 
 ocr = PaddleOCR(use_angle_cls=True, lang="en")
 
@@ -36,36 +39,31 @@ async def process_receipt_image(image: UploadFile, user_id: str) -> dict:
             extracted_text.append(line[1][0])
         logger.info(f"Extracted text: {extracted_text}")
 
-        # TODO: Postprocess OCR Text
-        data = {
-            "user_id": user_id,
-            "timestamp": datetime.now().isoformat(),
-            "total_price": 125000,
-            "items": [
-                {
-                    "product_id": "prod_001",
-                    "product_name": "Nasi Goreng Spesial",
-                    "quantity": 2,
-                    "price_per_unit": 25000,
-                    "total_price": 50000,
-                },
-                {
-                    "product_id": "prod_002",
-                    "product_name": "Es Teh Manis",
-                    "quantity": 3,
-                    "price_per_unit": 10000,
-                    "total_price": 30000,
-                },
-                {
-                    "product_id": "prod_003",
-                    "product_name": "Ayam Bakar",
-                    "quantity": 1,
-                    "price_per_unit": 45000,
-                    "total_price": 45000,
-                },
-            ],
-        }
+        # Step 5: Fix typos and parse text with gemini
+        logger.info("Fixing typos and parsing text with gemini.")
+        structured_data = fix_typos_and_parse(extracted_text)
+        logger.info(f"Structured data: {structured_data}")
+
+        # Step 6: Create JSON response
+        timestamp = structured_data["timestamp"]
+        if is_valid_timestamp(timestamp):
+            data = {
+                "user_id": user_id,
+                "timestamp": timestamp,
+                "items": structured_data["items"],
+                "total_price": structured_data.get("total_price", None),
+            }
+        else:
+            # Use current time if the timestamp is invalid
+            data = {
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "items": structured_data["items"],
+                "total_price": structured_data.get("total_price", None),
+            }
         logger.info("Receipt data successfully created.")
+
+        # TODO: Vector Search for Validate Products
 
         # Return success response
         logger.info(f"Receipt processed successfully for user_id: {user_id}")
