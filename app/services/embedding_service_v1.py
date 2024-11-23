@@ -156,7 +156,7 @@ async def create_index(
 
         # Initialize Firestore client
         credentials = service_account.Credentials.from_service_account_file(
-            settings.credentials
+            settings.firebase_credentials
         )
         firestore_client = firestore.Client(
             project=settings.project_id,
@@ -174,17 +174,22 @@ async def create_index(
 
         for idx, doc in enumerate(docs):
             data = doc.to_dict()
+            product_id = data.get("product_id", "")
             product_name = data.get("product_name", "")
+            price = data.get("price", "")
             if not product_name:
                 logger.warning(f"Skipping document {doc.id} with no product_name")
                 continue
 
             # Generate embedding
             embeddings = embedding_model.embed_query(product_name)
+            embeddings = np.array(embeddings).reshape(
+                1, -1
+            )
 
             # Add embedding to FAISS index
             index.add(embeddings.reshape(1, -1))
-            product_metadata[idx] = {"id": doc.id, "product_name": product_name}
+            product_metadata[idx] = {"product_id": product_id, "product_name": product_name, "price": price}
 
         # Save FAISS index locally
         faiss.write_index(index, index_file)

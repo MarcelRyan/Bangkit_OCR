@@ -15,9 +15,10 @@ from app.models.embedding import embedding_model
 # Constants for file paths
 FAISS_INDEX_FILE = "./app/files/faiss_index.index"
 PRODUCT_METADATA_FILE = "./app/files/faiss_metadata.json"
+PRETRAINED_FILE = "./app/files/en_number_mobile_v2.0_rec_train/"
 
 # Load models and data
-ocr = PaddleOCR(use_angle_cls=True, lang="en")
+ocr = PaddleOCR(use_angle_cls=True, lang="en", rec_model_dir=PRETRAINED_FILE)
 faiss_index = None
 product_metadata = {}
 

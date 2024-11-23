@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     location: str
     credentials: str
     database: str
+    firebase_credentials: str
 
     class Config:
         env_file = ".env"
