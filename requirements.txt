@@ -1,5 +1,9 @@
+fastapi
+uvicorn
+pillow
+numpy
 paddlepaddle-gpu
-paddleocr
 paddlepaddle
+paddleocr
 opencv-python
 matplotlib
