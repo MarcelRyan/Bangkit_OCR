@@ -5,6 +5,8 @@ numpy
 paddlepaddle-gpu
 paddlepaddle
 paddleocr
+faiss-cpu
+pandas
 python-multipart
 google-cloud-aiplatform
 opencv-python
