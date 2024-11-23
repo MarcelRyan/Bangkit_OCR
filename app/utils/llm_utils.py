@@ -5,13 +5,19 @@ from app.models.llm import VertexAILLM
 gemini_llm = VertexAILLM()
 
 
-def fix_typos_and_parse(extracted_text: List[str]) -> Dict:
+def fix_typos_and_parse(extracted_text: List[str], products: list) -> Dict:
     """
     Fix typos in extracted text and parse it into structured data using Gemini.
     """
+    # Create product context
+    product_context = ",".join(products)
+
     # Create a refined prompt
     prompt = f"""
     You are an advanced AI assistant tasked with processing OCR text from a receipt. Your goal is to extract structured data with the following requirements:
+
+    Here is the list of products available in the store:
+    {product_context}
 
     Input:
     {extracted_text}
