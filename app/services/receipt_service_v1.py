@@ -63,7 +63,8 @@ async def process_receipt_image(image: UploadFile, user_id: str) -> dict:
         extracted_text = perform_ocr(pil_image)
 
         # Step 3: Fix typos and parse extracted text
-        structured_data = fix_typos_and_parse(extracted_text)
+        products = [product["product_name"] for product in product_metadata.values()]
+        structured_data = fix_typos_and_parse(extracted_text, products)
         data = prepare_initial_data(structured_data, user_id)
 
         # Step 4: Validate products using FAISS vector search
