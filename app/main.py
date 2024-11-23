@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import receipt_router_v1
+from app.routers import embedding_router_v1, receipt_router_v1
 from app.common.config import settings
 from app.common.logging import logger
 
@@ -19,3 +19,4 @@ async def health_check():
 
 # Version 1 API
 app.include_router(receipt_router_v1.router, prefix="/api/v1", tags=["Receipt v1"])
+app.include_router(embedding_router_v1.router, prefix="/api/v1", tags=["Embedding v1"])
