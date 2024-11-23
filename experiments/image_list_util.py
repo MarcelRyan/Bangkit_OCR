@@ -58,6 +58,6 @@ with open(output_file, "w") as f:
             for img in images:
                 image_path = os.path.join(subfolder_path, img)
                 # Write to file in the format: path/to/image the_image_label
-                f.write(f"{image_path} {label}\n")
+                f.write(f"{image_path}\t{label}\n")
 
 print(f"Labels file has been successfully written to {output_file}")
