@@ -1,16 +1,22 @@
 version: "3.8"
 
 services:
-  fastapi-app:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fastapi-app
+    container_name: fastapi-ocr-genai
     ports:
       - "8000:8000"
     volumes:
       - .:/app
     environment:
       - APP_NAME=OCR + GenAI App
-      - OCR_MODEL_PATH=./models
       - DEBUG=False
+      - OCR_MODEL_PATH=./models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
