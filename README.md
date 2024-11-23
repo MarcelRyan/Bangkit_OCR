@@ -4,14 +4,12 @@ A FastAPI-based application for processing receipt images using PaddleOCR and ge
 
 ## Features
 
-- **OCR with PaddleOCR**:
-  - Processes receipt images to extract text.
 - **Preprocessing**:
   - Includes image preprocessing for better OCR results.
-- **Structured Data Output**:
+- **OCR with PaddleOCR**:
+  - Processes receipt images to extract text.
+- **Structured Data Output with GenAI**:
   - Returns structured data with user information, itemized receipts, and total price.
-- **API Documentation**:
-  - Interactive Swagger and ReDoc documentation available.
 
 ## Requirements
 
