@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     project_id: str
     location: str
     credentials: str
+    database: str
 
     class Config:
         env_file = ".env"
