@@ -5,7 +5,6 @@ numpy
 paddlepaddle-gpu
 paddlepaddle
 paddleocr
-faiss-cpu
 pandas
 google-cloud-firestore
 python-multipart

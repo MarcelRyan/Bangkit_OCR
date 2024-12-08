@@ -1,6 +1,7 @@
 import logging
 from app.common.config import settings
 
+
 logger = logging.getLogger(settings.app_name)
 logger.setLevel(logging.INFO)
 logger.propagate = False

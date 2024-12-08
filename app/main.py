@@ -3,6 +3,7 @@ from app.routers import embedding_router_v1, receipt_router_v1
 from app.common.config import settings
 from app.common.logging import logger
 
+
 app = FastAPI(
     title=settings.app_name,
     description="FastAPI app for processing receipt images and generating outputs.",

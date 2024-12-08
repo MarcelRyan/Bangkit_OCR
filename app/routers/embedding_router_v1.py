@@ -1,9 +1,5 @@
 from fastapi import APIRouter, HTTPException, Form
-from app.services.embedding_service_v1 import (
-    generate_embeddings,
-    create_index,
-    create_index_from_csv,
-)
+from app.services.embedding_service_v1 import generate_embeddings
 
 
 router = APIRouter(prefix="/embeddings")
@@ -18,24 +14,6 @@ async def process_receipt(
 
     try:
         response = await generate_embeddings(product_name)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
-@router.get("/index")
-async def process_receipt():
-    try:
-        response = await create_index()
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
-@router.get("/index/local")
-async def process_receipt():
-    try:
-        response = await create_index_from_csv()
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

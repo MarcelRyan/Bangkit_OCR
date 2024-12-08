@@ -1,53 +1,25 @@
 import io
-import faiss
-import json
 import numpy as np
+
+from numpy.linalg import norm
 from paddleocr import PaddleOCR
 from PIL import Image
 from datetime import datetime
 from fastapi import UploadFile
 from app.common.logging import logger
+from app.common.database import db
 from app.utils.image_utils import preprocess_image
 from app.utils.llm_utils import fix_typos_and_parse
 from app.utils.timestamp_utils import is_valid_timestamp
 from app.models.embedding import embedding_model
 
-# Constants for file paths
-FAISS_INDEX_FILE = "./app/files/faiss_index.index"
-PRODUCT_METADATA_FILE = "./app/files/faiss_metadata.json"
-PRETRAINED_FILE = "./app/files/en_number_mobile_v2.0_rec_train/"
-
 # Load models and data
-ocr = PaddleOCR(use_angle_cls=True, lang="en", rec_model_dir=PRETRAINED_FILE)
-faiss_index = None
-product_metadata = {}
-
-
-def load_faiss_and_metadata():
-    """Load FAISS index and metadata."""
-    global faiss_index, product_metadata
-    try:
-        # Load FAISS index
-        faiss_index = faiss.read_index(FAISS_INDEX_FILE)
-        logger.info("FAISS index loaded successfully.")
-
-        # Load metadata
-        with open(PRODUCT_METADATA_FILE, "r") as f:
-            product_metadata = json.load(f)
-        logger.info("Product metadata loaded successfully.")
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
-    except Exception as e:
-        logger.error(f"Error loading FAISS index or metadata: {e}")
-
-
-# Initialize FAISS and metadata
-load_faiss_and_metadata()
+ocr = PaddleOCR(use_angle_cls=True, lang="en")
 
 
 async def process_receipt_image(image: UploadFile, user_id: str) -> dict:
     """
-    Process the receipt image and validate product information using FAISS.
+    Process the receipt image and validate product information using vector search.
     Args:
         image (UploadFile): Uploaded receipt image.
         user_id (str): User identifier.
@@ -63,13 +35,16 @@ async def process_receipt_image(image: UploadFile, user_id: str) -> dict:
         # Step 2: Perform OCR and extract text
         extracted_text = perform_ocr(pil_image)
 
-        # Step 3: Fix typos and parse extracted text
-        products = [product["product_name"] for product in product_metadata.values()]
-        structured_data = fix_typos_and_parse(extracted_text, products)
+        # Step 3: Retrieve product data
+        products = fetch_products(user_id)
+        product_names = [product["product_name"] for product in products]
+
+        # Step 4: Fix typos and parse extracted text
+        structured_data = fix_typos_and_parse(extracted_text, product_names)
         data = prepare_initial_data(structured_data, user_id)
 
-        # Step 4: Validate products using FAISS vector search
-        data = validate_products_with_faiss(data)
+        # Step 5: Validate products using vector search
+        data = validate_products(data, products)
 
         logger.info(f"Receipt processed successfully for user_id: {user_id}")
         return {
@@ -120,24 +95,61 @@ def prepare_initial_data(structured_data: dict, user_id: str) -> dict:
     return data
 
 
-def validate_products_with_faiss(data: dict) -> dict:
-    """Validate product information using FAISS vector search."""
-    if not faiss_index or not product_metadata:
-        logger.warning("FAISS index or metadata not loaded. Skipping validation.")
-        return data
+def fetch_products(user_id: str) -> list:
+    """
+    Fetch products from a Firestore user's subcollection.
 
-    logger.info("Validating products using FAISS vector search.")
+    Args:
+        user_id (str): The ID of the user whose products should be fetched.
+
+    Returns:
+        list: A list of products in the user's subcollection.
+    """
+    try:
+        products_ref = db.collection("users").document(user_id).collection("products")
+        products_snapshot = products_ref.get()
+        products = [
+            {**product.to_dict(), "product_id": product.id}
+            for product in products_snapshot
+        ]
+
+        return products
+
+    except Exception as e:
+        logger.error(f"An error occurred while fetching products: {e}")
+        return []
+
+
+def cosine_similarity(v1, v2):
+    """Calculate cosine similarity between two vectors."""
+    return np.dot(v1, v2) / (norm(v1) * norm(v2))
+
+
+def validate_products(data: dict, products: list) -> dict:
+    """Validate product information using local vector search."""
+
+    logger.info("Validating products using local vector search.")
     valid_items = []
     total_price = 0
 
+    product_embeddings = [np.array(p["embeddings"]) for p in products]
+
     for item in data["items"]:
         product_name = item["product_name"]
-        embedding = np.array(embedding_model.embed_query(product_name)).reshape(1, -1)
+        embedding = np.array(embedding_model.embed_query(product_name))
 
-        # Perform FAISS search
-        distances, indices = faiss_index.search(embedding, k=1)
-        if distances[0][0] < 1:  # Match threshold
-            matched_product = product_metadata[str(indices[0][0])]
+        similarities = [
+            cosine_similarity(embedding, product_embedding)
+            for product_embedding in product_embeddings
+        ]
+
+        best_match_index = np.argmax(similarities)
+        best_similarity = similarities[best_match_index]
+
+        similarity_threshold = 0.5
+
+        if best_similarity >= similarity_threshold:
+            matched_product = products[best_match_index]
             item.update(
                 {
                     "product_id": matched_product["product_id"],
@@ -151,7 +163,7 @@ def validate_products_with_faiss(data: dict) -> dict:
             valid_items.append(item)
         else:
             logger.warning(
-                f"Product {product_name} has no similar match and was removed."
+                f"Product {product_name} has no similar match (similarity: {best_similarity}) and was removed."
             )
 
     data["items"] = valid_items
